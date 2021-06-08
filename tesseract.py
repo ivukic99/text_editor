@@ -29,7 +29,7 @@ img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 #            cv2.putText(img, b[11], (x,y+65), cv2.FONT_HERSHEY_COMPLEX,1,(255,0,0), 2)
 
 
-hImg, wImg, _= img.shape #vraca velicinu slike
+hImg, wImg, _= img.shape
 boxes = pytesseract.image_to_data(img)
 for x, b in enumerate(boxes.splitlines()):
     if x != 0:
