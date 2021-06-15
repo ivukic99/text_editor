@@ -2,9 +2,11 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.messagebox import showerror
 from Dialog_window import *
-from Image_dialog import *
+#from Image_dialog import *
 import cv2
 import pytesseract
+import docx
+import os
 
 class Editor(Frame):
     def __init__(self, root):
@@ -79,8 +81,21 @@ class Editor(Frame):
         return
 
     def Otvori(self, e = None):
-        fname = askopenfilename(filetype=[("Sve datoteke", "*.*"),("Text datoteke", "*.txt")], title="Odaberi datoteku")
-        if fname:
+        fname = askopenfilename(filetype=[("Sve datoteke", "*.*"),("Text datoteke", "*.txt"), ("Docx datoteke", "*.docx")], title="Odaberi datoteku")
+        if fname[-5:] == ".docx" or fname[-4:] == ".doc":
+            try:
+                text = []
+                doc = docx.Document(fname)
+                all = doc.paragraphs
+                for red in all:
+                    text.append(red.text)
+                    data = "\n".join(text)
+                self.T.insert(0.0, data)
+                self.root.title(fname)
+                self.F = fname
+            except:
+                showerror("Program za uređivanje teksta", "Datoteka ne postoji")
+        elif fname:
             try:
                 #sljedeca linija brise prethodno zapisani tekst, bez njega novi tekst se dodaje na prethodni
                 #self.T.delete(1.0, END)
@@ -97,8 +112,17 @@ class Editor(Frame):
         if self.F == None:
             self.SpremiKao()
         else:
-            with open(self.F, "w") as f:
-                f.write(self.T.get(0.0, END))
+            base = os.path.basename(self.F)
+            name = os.path.splitext(base)[0]
+            ext = os.path.splitext(base)[1]
+            if ext == ".docx" or ext == ".doc":
+                doc = docx.Document()
+                doc.add_heading("Dokument - " + str(name), 0)
+                p = doc.add_paragraph(str(self.T.get(0.0, END)))
+                doc.save(self.F)
+            else:
+                with open(self.F, "w") as f:
+                    f.write(self.T.get(0.0, END))
         return
 
     def SpremiKao(self, e = None):
@@ -106,8 +130,13 @@ class Editor(Frame):
         #                                  ("Sve datoteke", "*.*"), ("Png slika", "*.png"),
         #                                  ("jpg slika", "*.jpg")], defaultextension=".txt", title="Spremi kao...")
 
-        fname = asksaveasfilename(filetype=[("Sve datoteke", "*.*"), ("Text datoteke", "*.txt")], defaultextension=".txt", title="Spremi kao...")
-        if fname:
+        fname = asksaveasfilename(filetype=[("Sve datoteke", "*.*"), ("Text datoteke", "*.txt"), ("Docx datoteke", "*.docx")], defaultextension=".txt", title="Spremi kao...")
+
+        if fname[-5:] == ".docx" or fname[-4:] == ".doc":
+            self.F = fname
+            self.Spremi()
+            self.root.title(self.F)
+        elif fname:
             self.F = fname
             self.Spremi()
             self.root.title(fname)
@@ -149,6 +178,7 @@ class Editor(Frame):
         return
 
     def Učitaj_sliku(self, e = None):
+        #ImageDialog je novi dialog prikaza slike....(ne koristi se pošto openCV to radi)
         #try:
         #    ImageDialog(self.root)
         #except:
@@ -161,7 +191,8 @@ class Editor(Frame):
         pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
         img = cv2.imread(fname)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        rez = pytesseract.image_to_string(img, lang="eng+cro")
+        custom_config = r'-l hrv --psm 6'
+        rez = pytesseract.image_to_string(img, lang="hrv", config=custom_config)
         self.T.insert(0.0, rez)
 
         hImg, wImg, _ = img.shape  # vraca velicinu slike
