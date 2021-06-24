@@ -177,6 +177,44 @@ class Editor(Frame):
             return
         return
 
+    def mouse_crop(self, event, x, y, flags, param):
+
+        # kada se klikne lijevi klik misa uzimaju se x, y koordinate za sjeckanje slike
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.x_start, self.y_start, self.x_end, self.y_end = x, y, x, y
+            self.cropping = True
+
+        # prati pokrete misa kada se drzi prst na lijevom kliku
+        elif event == cv2.EVENT_MOUSEMOVE:
+            if self.cropping == True:
+                self.x_end, self.y_end = x, y
+
+        # kada se pusti lijevi klik zaustavlja sjeckanje
+        elif event == cv2.EVENT_LBUTTONUP:
+            self.x_end, self.y_end = x, y
+            self.cropping = False  # cropping is finished
+            refPoint = [(self.x_start, self.y_start), (self.x_end, self.y_end)]
+
+            if len(refPoint) == 2:
+                roi = self.oriImage[refPoint[0][1]:refPoint[1][1], refPoint[0][0]:refPoint[1][0]]
+                pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+                img = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
+                custom_config = r'-l hrv --psm 6'
+                rez = pytesseract.image_to_string(img, lang="hrv", config=custom_config)
+                self.T.insert(0.0, rez)
+
+                # <---------------nije potrebno dodatno crtati kvadrate kada u while to radimo----------->
+                # boxes = pytesseract.image_to_data(img)
+                # for x, b in enumerate(boxes.splitlines()):
+                #    if x != 0:
+                #        b = b.split()
+                #        if len(b) == 12:
+                #            x, y, w, h = int(b[6]), int(b[7]), int(b[8]), int(b[9])
+                #            cv2.rectangle(roi, (x, y), (w + x, h + y), (0, 0, 255), 1)
+                #            cv2.putText(img, b[11], (x, y + 65), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2)
+                # cv2.imshow("Odabrani tekst za čitanje", roi)
+                return
+
     def Učitaj_sliku(self, e = None):
         #ImageDialog je novi dialog prikaza slike....(ne koristi se pošto openCV to radi)
         #try:
@@ -188,25 +226,25 @@ class Editor(Frame):
             filetype=[("Fotografija datoteke", "*.jpg;" "*.jpeg;" "*.png"), ("PDF datoteke", "*.pdf")],
             title="Odaberi fotografiju")
 
-        pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-        img = cv2.imread(fname)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        custom_config = r'-l hrv --psm 6'
-        rez = pytesseract.image_to_string(img, lang="hrv", config=custom_config)
-        self.T.insert(0.0, rez)
+        self.cropping = False
+        self.x_start, self.y_start, self.x_end, self.y_end = 0, 0, 0, 0
+        self.image = cv2.imread(fname)
+        self.oriImage = self.image.copy()
 
-        hImg, wImg, _ = img.shape  # vraca velicinu slike
-        boxes = pytesseract.image_to_data(img)
-        for x, b in enumerate(boxes.splitlines()):
-            if x != 0:
-                b = b.split()
-                if len(b) == 12:
-                    x, y, w, h = int(b[6]), int(b[7]), int(b[8]), int(b[9])
-                    cv2.rectangle(img, (x, y), (w + x, h + y), (0, 0, 255), 1)
-                    #cv2.putText(img, b[11], (x, y + 65), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2)
+        cv2.namedWindow("Slika")
+        cv2.setMouseCallback("Slika", self.mouse_crop)
+        while True:
+            i = self.image.copy()
+            if cv2.waitKey(10) == 27:
+                break
+            elif not self.cropping:
+                cv2.imshow("Slika", self.image)
+            elif self.cropping:
+                cv2.rectangle(i, (self.x_start, self.y_start), (self.x_end, self.y_end), (0, 255, 0), 2)
+                cv2.imshow("Slika", i)
+            return
 
-        cv2.imshow("Result", img)
-        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 def main():
     e = Editor(Tk())
