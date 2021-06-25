@@ -192,7 +192,7 @@ class Editor(Frame):
         # kada se pusti lijevi klik zaustavlja sjeckanje
         elif event == cv2.EVENT_LBUTTONUP:
             self.x_end, self.y_end = x, y
-            self.cropping = False  # cropping is finished
+            self.cropping = False
             refPoint = [(self.x_start, self.y_start), (self.x_end, self.y_end)]
 
             if len(refPoint) == 2:
@@ -203,16 +203,6 @@ class Editor(Frame):
                 rez = pytesseract.image_to_string(img, lang="hrv", config=custom_config)
                 self.T.insert(0.0, rez)
 
-                # <---------------nije potrebno dodatno crtati kvadrate kada u while to radimo----------->
-                # boxes = pytesseract.image_to_data(img)
-                # for x, b in enumerate(boxes.splitlines()):
-                #    if x != 0:
-                #        b = b.split()
-                #        if len(b) == 12:
-                #            x, y, w, h = int(b[6]), int(b[7]), int(b[8]), int(b[9])
-                #            cv2.rectangle(roi, (x, y), (w + x, h + y), (0, 0, 255), 1)
-                #            cv2.putText(img, b[11], (x, y + 65), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2)
-                # cv2.imshow("Odabrani tekst za čitanje", roi)
                 return
 
     def Učitaj_sliku(self, e = None):
@@ -237,12 +227,12 @@ class Editor(Frame):
             i = self.image.copy()
             if cv2.waitKey(10) == 27:
                 break
-            elif not self.cropping:
-                cv2.imshow("Slika", self.image)
             elif self.cropping:
                 cv2.rectangle(i, (self.x_start, self.y_start), (self.x_end, self.y_end), (0, 255, 0), 2)
                 cv2.imshow("Slika", i)
-            return
+            elif not self.cropping:
+                cv2.imshow("Slika", self.image)
+
 
         cv2.destroyAllWindows()
 
