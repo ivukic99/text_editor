@@ -38,7 +38,7 @@ class Editor(Frame):
         #ovo je izbornik
         mB = Menu(self.root)
         mD = Menu(mB, tearoff = 0)
-        mD.add_command(label="Učitaj fotografiju", underline=0, accelerator="Ctrl+U", command=self.Učitaj_sliku)
+        mD.add_command(label="Skeniraj fotografiju", underline=0, accelerator="Ctrl+U", command=self.Učitaj_sliku)
         self.root.bind("<Control-u>", self.Učitaj_sliku)
         mD.add_separator()
         mD.add_command(label="Nova", underline=0, accelerator="Ctrl+N", command=self.Nova)
@@ -201,7 +201,7 @@ class Editor(Frame):
                 img = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
                 custom_config = r'-l hrv --psm 6'
                 rez = pytesseract.image_to_string(img, lang="hrv", config=custom_config)
-                self.T.insert(0.0, rez)
+                self.T.insert(INSERT, rez[:-1])
 
                 return
 
@@ -213,7 +213,7 @@ class Editor(Frame):
         #    print("ne radi")
         #return
         fname = askopenfilename(
-            filetype=[("Fotografija datoteke", "*.jpg;" "*.jpeg;" "*.png"), ("PDF datoteke", "*.pdf")],
+            filetype=[("Fotografija datoteke", "*.jpg;" "*.jpeg;" "*.png")],
             title="Odaberi fotografiju")
 
         self.cropping = False
@@ -232,9 +232,8 @@ class Editor(Frame):
                 cv2.imshow("Slika", i)
             elif not self.cropping:
                 cv2.imshow("Slika", self.image)
-
-
         cv2.destroyAllWindows()
+        return
 
 def main():
     e = Editor(Tk())
