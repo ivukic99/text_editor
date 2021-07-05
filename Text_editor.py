@@ -1,12 +1,12 @@
-from tkinter import *
+
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.messagebox import showerror
 from Dialog_window import *
-#from Image_dialog import *
 import cv2
 import pytesseract
 import docx
 import os
+from pdf2image import convert_from_path
 
 class Editor(Frame):
     def __init__(self, root):
@@ -38,9 +38,13 @@ class Editor(Frame):
         #ovo je izbornik
         mB = Menu(self.root)
         mD = Menu(mB, tearoff = 0)
-        mD.add_command(label="Skeniraj fotografiju", underline=0, accelerator="Ctrl+U", command=self.Učitaj_sliku)
-        self.root.bind("<Control-u>", self.Učitaj_sliku)
+        mD.add_command(label="Skeniraj fotografiju", underline=0, accelerator="Ctrl+U", command=self.Ucitaj_sliku)
+        self.root.bind("<Control-u>", self.Ucitaj_sliku)
+        mD.add_command(label="Pretvori PDF->slika", underline=0, accelerator="Ctrl+Y", command=self.Direktorij)
+        self.root.bind("<Control-y>", self.Direktorij)
+
         mD.add_separator()
+
         mD.add_command(label="Nova", underline=0, accelerator="Ctrl+N", command=self.Nova)
         self.root.bind("<Control-n>", self.Nova)
         mD.add_command(label="Otvori", underline=0, accelerator="Ctrl+O", command=self.Otvori)
@@ -49,7 +53,9 @@ class Editor(Frame):
         self.root.bind("<Control-s>", self.Spremi)
         mD.add_command(label="Spremi kao...", underline=7, accelerator="Ctrl+Shift+S", command=self.SpremiKao)
         self.root.bind("<Control-Shift-s>", self.SpremiKao)
+
         mD.add_separator()
+
         mD.add_command(label="Kraj", underline=0, accelerator="Ctrl+Q", command=self.Kraj)
         self.root.bind("<Control-q>", self.Kraj)
         mB.add_cascade(menu=mD, label="Datoteka")
@@ -178,7 +184,6 @@ class Editor(Frame):
         return
 
     def mouse_crop(self, event, x, y, flags, param):
-
         # kada se klikne lijevi klik misa uzimaju se x, y koordinate za sjeckanje slike
         if event == cv2.EVENT_LBUTTONDOWN:
             self.x_start, self.y_start, self.x_end, self.y_end = x, y, x, y
@@ -205,13 +210,7 @@ class Editor(Frame):
 
                 return
 
-    def Učitaj_sliku(self, e = None):
-        #ImageDialog je novi dialog prikaza slike....(ne koristi se pošto openCV to radi)
-        #try:
-        #    ImageDialog(self.root)
-        #except:
-        #    print("ne radi")
-        #return
+    def Ucitaj_sliku(self, e = None):
         fname = askopenfilename(
             filetype=[("Fotografija datoteke", "*.jpg;" "*.jpeg;" "*.png")],
             title="Odaberi fotografiju")
@@ -219,6 +218,14 @@ class Editor(Frame):
         self.cropping = False
         self.x_start, self.y_start, self.x_end, self.y_end = 0, 0, 0, 0
         self.image = cv2.imread(fname)
+        h = self.image.shape[0]
+        w = self.image.shape[1]
+        if(h > 700):
+            h = 700
+        if(w > 550):
+            w = 550
+        dim = (w,h)
+        self.image = cv2.resize(self.image, dim, interpolation=cv2.INTER_AREA)
         self.oriImage = self.image.copy()
 
         cv2.namedWindow("Slika")
@@ -234,6 +241,39 @@ class Editor(Frame):
                 cv2.imshow("Slika", self.image)
         cv2.destroyAllWindows()
         return
+
+
+    def PDF_slika(self, e = None):
+        fname = askopenfilename(
+            filetype=[("PDF datoteka", "*.pdf")],
+            title="Odaberi PDF datoteku"
+        )
+        pages = convert_from_path(fname, 500, poppler_path=r'C:\Program Files\poppler-0.68.0\bin')
+        image_counter = 1
+        for page in pages:
+            filename = str(image_counter) + "_stranica.jpg"
+            page.save("PDF_img/" + filename, "JPEG")
+            image_counter += 1
+        return
+
+
+    def Ucitaj_PDF(self, e = None):
+        path = "./PDF_img"
+        dir = os.listdir(path)
+        if len(dir) == 0:
+            self.PDF_slika()
+        else:
+            for f in dir:
+                os.remove(os.path.join(path, f))
+                self.PDF_slika()
+        return
+
+    def Direktorij(self, e = None):
+        if os.path.isdir("./PDF_img") == True:
+            self.Ucitaj_PDF()
+        else:
+            os.mkdir("PDF_img")
+            self.Ucitaj_PDF()
 
 def main():
     e = Editor(Tk())
